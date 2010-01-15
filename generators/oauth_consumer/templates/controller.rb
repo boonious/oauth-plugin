@@ -3,7 +3,13 @@ class OauthConsumersController < ApplicationController
   include Oauth::Controllers::ConsumerController
   
   def index
-    @consumer_tokens=ConsumerToken.all :conditions=>{:user_id=>current_user.id}
+    # @consumer_tokens=ConsumerToken.all :conditions=>{:user_id=>current_user.id}
+    
+    # Instead return tokens of any 'current_user', otherwise empty array. 
+    # This remove the dependency of a logged in user
+    # so that the plugin can be used as a primary login mechanism. 
+    # And this shows a list of oauth targets to users
+    @consumer_tokens = (current_user && (ConsumerToken.all :conditions=>{:user_id=>current_user.id})) || []  
     @services=OAUTH_CREDENTIALS.keys-@consumer_tokens.collect{|c| c.class.service_name}
   end
   

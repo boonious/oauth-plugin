@@ -3,7 +3,7 @@ module Oauth
     module ConsumerController
       def self.included(controller)
         controller.class_eval do  
-          before_filter :login_required
+          # before_filter :login_required 
           before_filter :load_consumer, :except=>:index
           skip_before_filter :verify_authenticity_token,:only=>:callback
         end
@@ -14,7 +14,6 @@ module Oauth
         # The services the user hasn't already connected to
         @services=OAUTH_CREDENTIALS.keys-@consumer_tokens.collect{|c| c.class.service_name}
       end
-      
       
       # creates request token and redirects on to oauth provider's auth page
       # If user is already connected it displays a page with an option to disconnect and redo
@@ -35,6 +34,7 @@ module Oauth
         if @request_token_secret
           @token=@consumer.create_from_request_token(current_user,params[:oauth_token],@request_token_secret,params[:oauth_verifier])
           if @token
+            session[:user_id] = @token.user_id # for current_user which does login_from_session 
             flash[:notice] = "#{params[:id].humanize} was successfully connected to your account"
             go_back
           else
@@ -48,11 +48,11 @@ module Oauth
       def destroy
         throw RecordNotFound unless @token
         @token.destroy
+        reset_session # clear user_id variable from session store
         if params[:commit]=="Reconnect"
           redirect_to oauth_consumer_url(params[:id])
         else
           flash[:notice] = "#{params[:id].humanize} was successfully disconnected from your account"
-          
           go_back
         end
       end
@@ -68,7 +68,8 @@ module Oauth
         consumer_key=params[:id].to_sym
         throw RecordNotFound unless OAUTH_CREDENTIALS.include?(consumer_key)
         @consumer="#{consumer_key.to_s.camelcase}Token".constantize
-        @token=@consumer.find_by_user_id current_user.id
+      #  @token=@consumer.find_by_user_id current_user.id
+        @token=@consumer.find_by_user_id current_user.id if current_user # only retrieve token if the user has logged in, for primary login
       end
       
     end
