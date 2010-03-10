@@ -14,11 +14,12 @@ class TwitterToken < ConsumerToken
       twitter_oauth=Twitter::OAuth.new consumer.key, consumer.secret
       twitter_oauth.authorize_from_access access_token.token, access_token.secret  
       twitter_credentials = Twitter::Base.new(twitter_oauth).verify_credentials
-
-      twitter_login = FederatedUser.custom_login(twitter_credentials, service_name)
-      twitter_user = User.find_by_login twitter_login # this user login before?
-
+      
+      # this user login before?
+      twitter_user = User.find(:first, :conditions => ["(login = ? OR login = ?) AND service_provider = ?", twitter_credentials["screen_name"], twitter_credentials["screen_name"]+'@'+service_name.to_s, service_name.to_s])
+            
       unless twitter_user
+        twitter_login = FederatedUser.custom_login(twitter_credentials, service_name)
         twitter_user = FederatedUser.new(twitter_credentials, {:login=>twitter_login,:service_provider=>service_name.to_s})
         twitter_user.save(perform_validation=false)
         twitter_user.federated_user_activate!
