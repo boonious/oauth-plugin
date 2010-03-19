@@ -37,6 +37,7 @@ class TwitterToken < ConsumerToken
 
   end
 
+  # send tweet (comment) to Twitter via the OAuth API
   def update(tweet)
     client.update tweet
   end
